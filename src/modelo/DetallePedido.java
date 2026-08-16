@@ -7,7 +7,7 @@ package modelo;
  *
  * IMPORTANTE: en la base de datos de 6 tablas, "subtotal" YA NO es una
  * columna calculada automáticamente (no hay GENERATED ALWAYS AS ni
- * trigger). Es responsabilidad de la aplicación Java calcular
+ * trigger). Es responsabilidad de la aplicación de Java calcular
  * subtotal = cantidad * precioUnitario ANTES de guardar, tarea que
  * realiza PedidoDAO.registrarPedidoCompleto().
  *

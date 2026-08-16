@@ -68,7 +68,8 @@ private static final Color MARRON_GUINDA = new Color(88, 17, 36);
     settings.fontValidTime = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12);
     settings.setColor(com.github.lgooddatepicker.components.TimePickerSettings.TimeArea.TimePickerTextValidTime, 
                       new java.awt.Color(88, 17, 36));
-    settings.initialTime = java.time.LocalTime.now().plusMinutes(15);
+    // Iniciar con el campo en blanco para exigir selección manual
+    settings.initialTime = null;
     
     return settings;
 }
@@ -245,11 +246,11 @@ private void limpiarFormulario() {
     txtCantidad.setText("1");
     txtIndicacionesEspeciales.setText("");
     
-    // Restablecer el TimePicker a una hora sugerida (+15 min)
+   // Restablecer el TimePicker a estado vacío
     if (timePickerRecoleccion != null) {
-        timePickerRecoleccion.setTime(java.time.LocalTime.now().plusMinutes(15));
+        timePickerRecoleccion.setTime(null);
     }
-    
+
     actualizarCarrito();
 }
 
