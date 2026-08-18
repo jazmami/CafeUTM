@@ -242,7 +242,7 @@ private void setIconoVentana() {
      FrmGestionProductos frm = new FrmGestionProductos();
     
     // Aumentamos la altura a 650 px para dar espacio a 'lblTotalProductos'
-    frm.setSize(880, 650);
+    frm.setSize(900, 650);
     
     dskEscritorio.add(frm);
     

@@ -355,6 +355,14 @@ psPedido.setDouble(5, pedido.getTotal());
                     detalle.setPrecioUnitario(rs.getDouble("precio_unitario"));
                     detalle.setIndicacionesEspeciales(rs.getString("indicaciones_especiales"));
 
+                    detalle.setSubtotal(rs.getDouble("subtotal"));
+        
+                    // Si en la base de datos viniera en 0, calcularlo por respaldo:
+                    if (detalle.getSubtotal() <= 0) {
+                     detalle.setSubtotal(detalle.getCantidad() * detalle.getPrecioUnitario());
+                    }
+
+                    detalle.setIndicacionesEspeciales(rs.getString("indicaciones_especiales"));
                     Producto p = new Producto();
                     p.setIdProducto(rs.getInt("id_producto"));
                     p.setNombre(rs.getString("nombre"));
@@ -420,38 +428,46 @@ psPedido.setDouble(5, pedido.getTotal());
         return actualizarEstado(idPedido, "Cancelado");
     }
 
-    /**
-     * Obtiene la demanda acumulada por producto para reportes.
+  /**
+     * Obtiene la demanda acumulada por producto distinguiendo las ventas de hoy
+     * y el total histórico, sincronizado con la fecha local de la aplicación.
      */
     public List<Object[]> obtenerDemandaAcumulada() {
         List<Object[]> lista = new ArrayList<>();
         String sql = """
-            SELECT pr.nombre, SUM(dp.cantidad) AS total_vendido, SUM(dp.subtotal) AS total_recaudado
+            SELECT 
+                pr.nombre,
+                COALESCE(SUM(CASE WHEN DATE(p.hora_pedido) = ? OR DATE(p.hora_pedido) = CURDATE() THEN dp.cantidad ELSE 0 END), 0) AS vendidos_hoy,
+                SUM(dp.cantidad) AS total_historico,
+                SUM(dp.subtotal) AS total_recaudado
             FROM detalle_pedidos dp
             INNER JOIN productos pr ON dp.id_producto = pr.id_producto
             INNER JOIN pedidos p ON dp.id_pedido = p.id_pedido
             WHERE p.estado != 'Cancelado'
             GROUP BY pr.id_producto, pr.nombre
-            ORDER BY total_vendido DESC
+            ORDER BY total_historico DESC
         """;
 
         try (Connection conn = ConexionBD.conectar();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+             PreparedStatement ps = conn.prepareStatement(sql)) {
 
-            while (rs.next()) {
-                Object[] fila = new Object[]{
-                    rs.getString("nombre"),
-                    rs.getInt("total_vendido"),
-                    rs.getDouble("total_recaudado")
-                };
-                lista.add(fila);
+            // Pasa la fecha actual de la computadora (ej. "2026-08-18")
+            ps.setString(1, java.time.LocalDate.now().toString());
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Object[] fila = new Object[]{
+                        rs.getString("nombre"),
+                        rs.getInt("vendidos_hoy"),       // Columna 1: Ventas de Hoy
+                        rs.getInt("total_historico"),    // Columna 2: Total Acumulado
+                        rs.getDouble("total_recaudado")  // Columna 3: Monto Recaudado ($)
+                    };
+                    lista.add(fila);
+                }
             }
-
         } catch (SQLException e) {
             System.out.println("Error al obtener demanda acumulada: " + e.getMessage());
         }
         return lista;
-       
     }
 }

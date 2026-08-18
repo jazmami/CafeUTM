@@ -326,6 +326,7 @@ private void cambiarEstado(String nuevoEstado) {
         lblIndicacionesTitulo = new javax.swing.JLabel();
         jScrollPane3 = new javax.swing.JScrollPane();
         txtIndicacionesEspeciales = new javax.swing.JTextArea();
+        btnImprimirTicket = new javax.swing.JButton();
 
         setClosable(true);
         setIconifiable(true);
@@ -584,9 +585,22 @@ private void cambiarEstado(String nuevoEstado) {
                 .addContainerGap()
                 .addComponent(lblIndicacionesTitulo)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane3)
+                .addComponent(jScrollPane3, javax.swing.GroupLayout.DEFAULT_SIZE, 160, Short.MAX_VALUE)
                 .addContainerGap())
         );
+
+        btnImprimirTicket.setBackground(new java.awt.Color(122, 15, 42));
+        btnImprimirTicket.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        btnImprimirTicket.setForeground(new java.awt.Color(255, 255, 255));
+        btnImprimirTicket.setIcon(new javax.swing.ImageIcon(getClass().getResource("/imagenes/imprimirticket.png"))); // NOI18N
+        btnImprimirTicket.setText("Imprimir Ticket");
+        btnImprimirTicket.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnImprimirTicket.setIconTextGap(8);
+        btnImprimirTicket.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnImprimirTicketActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout pnlDetalleProductosCardLayout = new javax.swing.GroupLayout(pnlDetalleProductosCard);
         pnlDetalleProductosCard.setLayout(pnlDetalleProductosCardLayout);
@@ -595,7 +609,9 @@ private void cambiarEstado(String nuevoEstado) {
             .addGroup(pnlDetalleProductosCardLayout.createSequentialGroup()
                 .addGroup(pnlDetalleProductosCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(pnlDetalleProductosCardLayout.createSequentialGroup()
-                        .addGap(243, 243, 243)
+                        .addGap(70, 70, 70)
+                        .addComponent(btnImprimirTicket)
+                        .addGap(76, 76, 76)
                         .addComponent(lblTotalPedidoTitulo)
                         .addGap(18, 18, 18)
                         .addComponent(lblTotalPedidoValor))
@@ -607,7 +623,7 @@ private void cambiarEstado(String nuevoEstado) {
                         .addGap(96, 96, 96)
                         .addComponent(lblDetalleHora))
                     .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 430, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 139, Short.MAX_VALUE)
                 .addComponent(pnlIndicacionesCard, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
@@ -622,11 +638,12 @@ private void cambiarEstado(String nuevoEstado) {
                             .addComponent(lblDetalleMatricula)
                             .addComponent(lblDetalleHora))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 146, Short.MAX_VALUE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jScrollPane2)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(pnlDetalleProductosCardLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(lblTotalPedidoTitulo)
-                            .addComponent(lblTotalPedidoValor)))
+                            .addComponent(lblTotalPedidoValor)
+                            .addComponent(btnImprimirTicket, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addComponent(pnlIndicacionesCard, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap())
         );
@@ -736,12 +753,32 @@ int fila = tblComandas.getSelectedRow();
         cargarComandasDelDia();
     }//GEN-LAST:event_btnActualizarTopActionPerformed
 
+    private void btnImprimirTicketActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnImprimirTicketActionPerformed
+        // TODO add your handling code here:
+        if (idPedidoSeleccionado == 0) {
+        JOptionPane.showMessageDialog(this, "Seleccione primero un pedido de la lista.", "Aviso", JOptionPane.WARNING_MESSAGE);
+        return;
+    }
+
+    // 1. Obtener los datos del pedido y sus detalles
+    Pedido pedidoActual = controlador.buscarPorId(idPedidoSeleccionado);
+    List<DetallePedido> detalles = controlador.obtenerDetallePorPedido(idPedidoSeleccionado);
+
+    // 2. Enviar a imprimir / Guardar como PDF
+    if (pedidoActual != null && detalles != null && !detalles.isEmpty()) {
+        utilidades.TicketImpresora.imprimir(pedidoActual, detalles);
+    } else {
+        JOptionPane.showMessageDialog(this, "No se encontraron detalles para este pedido.", "Error", JOptionPane.ERROR_MESSAGE);
+    }
+    }//GEN-LAST:event_btnImprimirTicketActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnActualizarTop;
     private javax.swing.JButton btnCancelarPedido;
     private javax.swing.JButton btnEnPreparacion;
     private javax.swing.JButton btnEntregado;
+    private javax.swing.JButton btnImprimirTicket;
     private javax.swing.JButton btnListoRecoger;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JScrollPane jScrollPane1;

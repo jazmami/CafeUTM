@@ -37,70 +37,104 @@ private int idProductoSeleccionado = 0;
 }
 
 private void listarProductos() {
-    DefaultTableModel modelo = new DefaultTableModel();
+    DefaultTableModel modelo = new DefaultTableModel() {
+        @Override
+        public boolean isCellEditable(int row, int col) {
+            return false; // Desactiva la edición directa de celdas
+        }
+
+        @Override
+        public Class<?> getColumnClass(int columnIndex) {
+            // Le indica a Swing que la columna 1 dibuja una imagen
+            if (columnIndex == 1) {
+                return javax.swing.ImageIcon.class;
+            }
+            return Object.class;
+        }
+    };
+
+    // 1. Columnas (con Foto en el índice 1)
     modelo.addColumn("ID");
+    modelo.addColumn("Foto");
     modelo.addColumn("Platillo / Bebida");
     modelo.addColumn("Precio ($)");
-    modelo.addColumn("Categoria");
+    modelo.addColumn("Categoría");
     modelo.addColumn("Disponibilidad");
     tblProductos.setModel(modelo);
 
+    // 2. Altura de fila adecuada para la miniatura
+    tblProductos.setRowHeight(50);
+
+    // 3. Llenar filas desde MySQL
     List<Producto> lista = controlador.listar();
     for (Producto p : lista) {
+        javax.swing.ImageIcon foto = obtenerFotoProducto(p.getNombre(), 45, 45);
         Object[] fila = {
             p.getIdProducto(),
+            foto,
             p.getNombre(),
-            p.getPrecio(),
-            p.getCategoria().getNombreCategoria(),
+            String.format("%.2f", p.getPrecio()),
+            p.getCategoria() != null ? p.getCategoria().getNombreCategoria() : "Sin Categoría",
             p.isDisponible() ? "Disponible" : "No disponible"
         };
         modelo.addRow(fila);
     }
+
     lblTotalProductos.setText("Total de productos: " + lista.size());
-    // Estilo guinda para el encabezado de la tabla
-tblProductos.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
-tblProductos.getTableHeader().setForeground(new java.awt.Color(122, 15, 42)); // Guinda
-tblProductos.getTableHeader().setBackground(java.awt.Color.WHITE);
 
-// Anchos de columna proporcionales
-tblProductos.getColumnModel().getColumn(0).setPreferredWidth(50);  // ID
-tblProductos.getColumnModel().getColumn(1).setPreferredWidth(260); // Platillo / Bebida
-tblProductos.getColumnModel().getColumn(2).setPreferredWidth(110); // Precio ($)
-tblProductos.getColumnModel().getColumn(3).setPreferredWidth(140); // Categoría
-tblProductos.getColumnModel().getColumn(4).setPreferredWidth(130); // Disponibilidad
+    // 4. Estilos de cabecera
+    tblProductos.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+    tblProductos.getTableHeader().setForeground(new java.awt.Color(122, 15, 42));
+    tblProductos.getTableHeader().setBackground(java.awt.Color.WHITE);
 
-// Colorear el texto de disponibilidad (Verde: Disponible / Rojo: No disponible) y alineación
-tblProductos.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
-    @Override
-    public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
-            boolean isSelected, boolean hasFocus, int row, int column) {
-        
-        java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-        
-        // Centrar columnas excepto el Nombre del Producto (Columna 1)
-        if (column == 0 || column == 2 || column == 3 || column == 4) {
-            setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        } else {
-            setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        }
+    // 5. Anchos de columna
+    tblProductos.getColumnModel().getColumn(0).setPreferredWidth(45);  // ID
+    tblProductos.getColumnModel().getColumn(1).setPreferredWidth(55);  // Foto
+    tblProductos.getColumnModel().getColumn(2).setPreferredWidth(230); // Platillo / Bebida
+    tblProductos.getColumnModel().getColumn(3).setPreferredWidth(90);  // Precio ($)
+    tblProductos.getColumnModel().getColumn(4).setPreferredWidth(120); // Categoría
+    tblProductos.getColumnModel().getColumn(5).setPreferredWidth(110); // Disponibilidad
 
-        // Colorear disponibilidad (Columna 4)
-        if (column == 4 && value != null) {
-            if ("Disponible".equals(value.toString())) {
-                setForeground(new java.awt.Color(0, 128, 0)); // Verde
-                setFont(getFont().deriveFont(java.awt.Font.BOLD));
+    // 6. Centrado, renderizado de imagen y colores de disponibilidad
+    tblProductos.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+        @Override
+        public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+            // DIBUJAR LA FOTO EN LA COLUMNA 1
+            if (column == 1 && value instanceof javax.swing.Icon) {
+                setIcon((javax.swing.Icon) value);
+                setText(""); // Elimina el texto javax.swing...
+                setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                return this;
             } else {
-                setForeground(new java.awt.Color(192, 0, 0)); // Rojo
-                setFont(getFont().deriveFont(java.awt.Font.BOLD));
+                setIcon(null); // Quitar icono en las columnas de texto
             }
-        } else if (!isSelected) {
-            setForeground(java.awt.Color.BLACK);
-            setFont(getFont().deriveFont(java.awt.Font.PLAIN));
-        }
 
-        return c;
-    }
-});
+            // Centrar ID, Precio, Categoría y Disponibilidad
+            if (column == 0 || column == 3 || column == 4 || column == 5) {
+                setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+            } else {
+                setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            }
+
+            // Colorear disponibilidad (Columna 5)
+            if (column == 5 && value != null) {
+                if ("Disponible".equals(value.toString())) {
+                    setForeground(new java.awt.Color(0, 128, 0)); // Verde
+                    setFont(getFont().deriveFont(java.awt.Font.BOLD));
+                } else {
+                    setForeground(new java.awt.Color(192, 0, 0)); // Rojo
+                    setFont(getFont().deriveFont(java.awt.Font.BOLD));
+                }
+            } else if (!isSelected) {
+                setForeground(java.awt.Color.BLACK);
+                setFont(getFont().deriveFont(java.awt.Font.PLAIN));
+            }
+            return c;
+        }
+    });
 }
 
 private void limpiar() {
@@ -110,6 +144,7 @@ private void limpiar() {
     chkDisponible.setSelected(true);
     idProductoSeleccionado = 0;
     tblProductos.clearSelection();
+    lblFotoPreview.setIcon(null); //Limpia el marco de imagen
 }
 
 private boolean validarCampos() {
@@ -145,6 +180,58 @@ private Producto construirProductoDesdeFormulario() {
     producto.setDisponible(chkDisponible.isSelected());
     return producto;
 }
+
+/**
+ * Busca y escala la imagen de un platillo al tamaño especificado.
+ * Soporta nombres específicos, sin espacios o nombres base con respaldo default.
+ */
+private javax.swing.ImageIcon obtenerFotoProducto(String nombreProducto, int ancho, int alto) {
+    if (nombreProducto == null || nombreProducto.trim().isEmpty()) {
+        nombreProducto = "default";
+    }
+
+    // 1. Limpiar acentos y minúsculas
+    String limpio = nombreProducto.toLowerCase()
+            .replace("á", "a").replace("é", "e").replace("í", "i").replace("ó", "o").replace("ú", "u");
+
+    // 2. Quitar contenido entre paréntesis si es un paquete (ej. Desayuno del Día (...))
+    if (limpio.contains("(") && limpio.contains(")")) {
+        limpio = limpio.substring(0, limpio.indexOf("(")).trim();
+    }
+
+    // 3. Quitar medidas numéricas (500ml, 1lt, etc.)
+    String sinMedidas = limpio.replaceAll("\\d+.*", "").trim();
+
+    // 4. Intentos de búsqueda en /imagenes/
+    String[] intentos = {
+        limpio.replace(" ", ""),
+        sinMedidas.replace(" ", ""),
+        limpio.replace(" ", "_"),
+        sinMedidas.replace(" ", "_"),
+        limpio.split(" ")[0]
+    };
+
+    java.net.URL url = null;
+    for (String intento : intentos) {
+        url = getClass().getResource("/imagenes/" + intento + ".png");
+        if (url != null) {
+            break;
+        }
+    }
+
+    // Respaldo default
+    if (url == null) {
+        url = getClass().getResource("/imagenes/comida_default.png");
+    }
+
+    if (url != null) {
+        java.awt.Image img = new javax.swing.ImageIcon(url).getImage();
+        java.awt.Image escalada = img.getScaledInstance(ancho, alto, java.awt.Image.SCALE_SMOOTH);
+        return new javax.swing.ImageIcon(escalada);
+    }
+
+    return null;
+}
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -164,6 +251,7 @@ private Producto construirProductoDesdeFormulario() {
         lblCategoria = new javax.swing.JLabel();
         cbxCategoria = new javax.swing.JComboBox<>();
         chkDisponible = new javax.swing.JCheckBox();
+        lblFotoPreview = new javax.swing.JLabel();
         pnlAcciones = new javax.swing.JPanel();
         btnGuardar = new javax.swing.JButton();
         btnModificar = new javax.swing.JButton();
@@ -212,6 +300,16 @@ private Producto construirProductoDesdeFormulario() {
         chkDisponible.setForeground(new java.awt.Color(122, 15, 42));
         chkDisponible.setSelected(true);
         chkDisponible.setText("Disponible Hoy");
+        chkDisponible.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                chkDisponibleActionPerformed(evt);
+            }
+        });
+
+        lblFotoPreview.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lblFotoPreview.setToolTipText("Previsualización del platillo");
+        lblFotoPreview.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(209, 213, 219)));
+        lblFotoPreview.setPreferredSize(new java.awt.Dimension(120, 120));
 
         javax.swing.GroupLayout pnlDatosLayout = new javax.swing.GroupLayout(pnlDatos);
         pnlDatos.setLayout(pnlDatosLayout);
@@ -224,16 +322,18 @@ private Producto construirProductoDesdeFormulario() {
                     .addComponent(lblCategoria))
                 .addGap(18, 18, 18)
                 .addGroup(pnlDatosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(cbxCategoria, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(txtNombre, javax.swing.GroupLayout.PREFERRED_SIZE, 340, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(txtNombre, javax.swing.GroupLayout.PREFERRED_SIZE, 250, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cbxCategoria, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(38, 38, 38)
                 .addGroup(pnlDatosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(pnlDatosLayout.createSequentialGroup()
                         .addComponent(lblPrecio)
-                        .addGap(47, 47, 47)
-                        .addComponent(txtPrecio, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtPrecio, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                     .addComponent(chkDisponible))
-                .addGap(39, 39, 39))
+                .addGap(30, 30, 30)
+                .addComponent(lblFotoPreview, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(15, 15, 15))
         );
         pnlDatosLayout.setVerticalGroup(
             pnlDatosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -241,15 +341,19 @@ private Producto construirProductoDesdeFormulario() {
                 .addContainerGap()
                 .addGroup(pnlDatosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(pnlDatosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(txtNombre, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGroup(pnlDatosLayout.createSequentialGroup()
+                            .addComponent(txtNombre, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGap(26, 26, 26)
+                            .addGroup(pnlDatosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                .addComponent(cbxCategoria, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addComponent(chkDisponible, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addComponent(lblPrecio)
-                        .addComponent(txtPrecio, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(lblNombre))
-                .addGap(18, 18, 18)
-                .addGroup(pnlDatosLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(lblCategoria)
-                    .addComponent(chkDisponible, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(cbxCategoria, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addComponent(txtPrecio, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(lblFotoPreview, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(pnlDatosLayout.createSequentialGroup()
+                        .addComponent(lblNombre)
+                        .addGap(40, 40, 40)
+                        .addComponent(lblCategoria)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -331,15 +435,15 @@ private Producto construirProductoDesdeFormulario() {
             pnlAccionesLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(pnlAccionesLayout.createSequentialGroup()
                 .addGap(25, 25, 25)
-                .addComponent(btnGuardar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btnGuardar, javax.swing.GroupLayout.DEFAULT_SIZE, 124, Short.MAX_VALUE)
                 .addGap(50, 50, 50)
-                .addComponent(btnModificar, javax.swing.GroupLayout.DEFAULT_SIZE, 123, Short.MAX_VALUE)
+                .addComponent(btnModificar, javax.swing.GroupLayout.DEFAULT_SIZE, 127, Short.MAX_VALUE)
                 .addGap(50, 50, 50)
-                .addComponent(btnEliminar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btnEliminar, javax.swing.GroupLayout.DEFAULT_SIZE, 124, Short.MAX_VALUE)
                 .addGap(50, 50, 50)
-                .addComponent(btnBuscar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btnBuscar, javax.swing.GroupLayout.DEFAULT_SIZE, 124, Short.MAX_VALUE)
                 .addGap(50, 50, 50)
-                .addComponent(btnLimpiar, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(btnLimpiar, javax.swing.GroupLayout.DEFAULT_SIZE, 126, Short.MAX_VALUE)
                 .addGap(25, 25, 25))
         );
         pnlAccionesLayout.setVerticalGroup(
@@ -360,9 +464,17 @@ private Producto construirProductoDesdeFormulario() {
 
             },
             new String [] {
-                "ID", "Platillo / Bebida", "Precio ($)", "Categoria", "Disponibilidad"
+                "ID", "Foto", "Platillo / Bebida", "Precio ($)", "Categoria", "Disponibilidad"
             }
-        ));
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
         tblProductos.setGridColor(new java.awt.Color(230, 230, 230));
         tblProductos.setRowHeight(30);
         tblProductos.setShowHorizontalLines(true);
@@ -401,7 +513,7 @@ private Producto construirProductoDesdeFormulario() {
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(pnlAcciones, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 475, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(lblTotalProductos)
                 .addContainerGap())
@@ -522,36 +634,44 @@ if (confirmacion == JOptionPane.YES_OPTION) {
 
     private void btnBuscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBuscarActionPerformed
         // TODO add your handling code here:
-        String texto = JOptionPane.showInputDialog(this, "Escriba el nombre del producto a buscar:");
-if (texto == null || texto.trim().isEmpty()) {
-    return;
-}
-
-DefaultTableModel modelo = new DefaultTableModel();
-modelo.addColumn("ID");
-modelo.addColumn("Platillo / Bebida");
-modelo.addColumn("Precio ($)");
-modelo.addColumn("Categoria");
-modelo.addColumn("Disponibilidad");
-tblProductos.setModel(modelo);
-
-List<Producto> lista = controlador.listar();
-int coincidencias = 0;
-
-for (Producto p : lista) {
-    if (p.getNombre().toLowerCase().contains(texto.toLowerCase())) {
-        Object[] fila = {
-            p.getIdProducto(),
-            p.getNombre(),
-            p.getPrecio(),
-            p.getCategoria().getNombreCategoria(),
-            p.isDisponible() ? "Disponible" : "No disponible"
-        };
-        modelo.addRow(fila);
-        coincidencias++;
+    String texto = JOptionPane.showInputDialog(this, "Escriba el nombre del producto a buscar:");
+    if (texto == null || texto.trim().isEmpty()) {
+        return;
     }
-}
-lblTotalProductos.setText("Total de productos: " + coincidencias);
+    
+    DefaultTableModel modelo = new DefaultTableModel() {
+        @Override
+        public boolean isCellEditable(int row, int col) { return false; }
+        @Override
+        public Class<?> getColumnClass(int col) { return col == 1 ? javax.swing.ImageIcon.class : Object.class; }
+    };
+    
+    modelo.addColumn("ID");
+    modelo.addColumn("Foto");
+    modelo.addColumn("Platillo / Bebida");
+    modelo.addColumn("Precio ($)");
+    modelo.addColumn("Categoría");
+    modelo.addColumn("Disponibilidad");
+    tblProductos.setModel(modelo);
+    
+    List<Producto> lista = controlador.listar();
+    int coincidencias = 0;
+    for (Producto p : lista) {
+        if (p.getNombre().toLowerCase().contains(texto.toLowerCase())) {
+            javax.swing.ImageIcon foto = obtenerFotoProducto(p.getNombre(), 45, 45);
+            Object[] fila = {
+                p.getIdProducto(),
+                foto,
+                p.getNombre(),
+                String.format("%.2f", p.getPrecio()),
+                p.getCategoria() != null ? p.getCategoria().getNombreCategoria() : "Sin Categoría",
+                p.isDisponible() ? "Disponible" : "No disponible"
+            };
+            modelo.addRow(fila);
+            coincidencias++;
+        }
+    }
+    lblTotalProductos.setText("Total de productos: " + coincidencias);
     }//GEN-LAST:event_btnBuscarActionPerformed
 
     private void btnLimpiarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnLimpiarActionPerformed
@@ -562,24 +682,32 @@ lblTotalProductos.setText("Total de productos: " + coincidencias);
 
     private void tblProductosMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_tblProductosMouseClicked
         // TODO add your handling code here:
-        int fila = tblProductos.getSelectedRow();
-if (fila >= 0) {
-    idProductoSeleccionado = (int) tblProductos.getValueAt(fila, 0);
-
-    txtNombre.setText(tblProductos.getValueAt(fila, 1).toString());
-    txtPrecio.setText(tblProductos.getValueAt(fila, 2).toString());
-
-    String nombreCategoria = tblProductos.getValueAt(fila, 3).toString();
-    for (int i = 0; i < cbxCategoria.getItemCount(); i++) {
-        if (cbxCategoria.getItemAt(i).getNombreCategoria().equals(nombreCategoria)) {
-            cbxCategoria.setSelectedIndex(i);
-            break;
+int fila = tblProductos.getSelectedRow();
+    if (fila >= 0) {
+        idProductoSeleccionado = Integer.parseInt(tblProductos.getValueAt(fila, 0).toString());
+        
+        String nombre = tblProductos.getValueAt(fila, 2).toString(); // Columna 2: Nombre
+        txtNombre.setText(nombre);
+        txtPrecio.setText(tblProductos.getValueAt(fila, 3).toString().replace("$", "")); // Columna 3: Precio
+        
+        String nombreCategoria = tblProductos.getValueAt(fila, 4).toString(); // Columna 4: Categoría
+        for (int i = 0; i < cbxCategoria.getItemCount(); i++) {
+            if (cbxCategoria.getItemAt(i).getNombreCategoria().equals(nombreCategoria)) {
+                cbxCategoria.setSelectedIndex(i);
+                break;
+            }
         }
-    }
+        
+        chkDisponible.setSelected(tblProductos.getValueAt(fila, 5).toString().equals("Disponible")); // Columna 5: Disponibilidad
 
-    chkDisponible.setSelected(tblProductos.getValueAt(fila, 4).toString().equals("Disponible"));
-}
+        // Cargar foto grande (110x110 px) en el marco de previsualización
+        lblFotoPreview.setIcon(obtenerFotoProducto(nombre, 110, 110));
+    }
     }//GEN-LAST:event_tblProductosMouseClicked
+
+    private void chkDisponibleActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_chkDisponibleActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_chkDisponibleActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -592,6 +720,7 @@ if (fila >= 0) {
     private javax.swing.JCheckBox chkDisponible;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JLabel lblCategoria;
+    private javax.swing.JLabel lblFotoPreview;
     private javax.swing.JLabel lblNombre;
     private javax.swing.JLabel lblPrecio;
     private javax.swing.JLabel lblTituloVentana;

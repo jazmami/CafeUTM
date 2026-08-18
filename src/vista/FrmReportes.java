@@ -21,21 +21,63 @@ public class FrmReportes extends javax.swing.JInternalFrame {
     cargarDemandaAcumulada();
     }
 
-    /**
- * Consulta la suma de cantidades pedidas por producto (considerando
- * únicamente pedidos activos, no cancelados) y la muestra en el JTable.
- */
-private void cargarDemandaAcumulada() {
-    DefaultTableModel modelo = new DefaultTableModel();
-    modelo.addColumn("Producto");
-    modelo.addColumn("Unidades Pedidas");
-    tblDemanda.setModel(modelo);
+/**
+     * Consulta la suma de cantidades pedidas (hoy y acumulado histórico)
+     * y las muestra en tblDemanda con formato limpio y centrado.
+     */
+    private void cargarDemandaAcumulada() {
+        DefaultTableModel modelo = new DefaultTableModel() {
+            @Override
+            public boolean isCellEditable(int row, int col) {
+                return false; // Bloquear edición en celdas
+            }
+        };
 
-    List<Object[]> demanda = controlador.obtenerDemandaAcumulada();
-    for (Object[] fila : demanda) {
-        modelo.addRow(fila);
+        // 1. Definir los 4 encabezados
+        modelo.addColumn("Producto");
+        modelo.addColumn("Vendidos Hoy");
+        modelo.addColumn("Total Histórico");
+        modelo.addColumn("Recaudado ($)");
+        tblDemanda.setModel(modelo);
+
+        // 2. Llenar los datos desde el controlador
+        List<Object[]> demanda = controlador.obtenerDemandaAcumulada();
+        if (demanda != null) {
+            for (Object[] fila : demanda) {
+                String nombre = fila[0] != null ? fila[0].toString() : "N/A";
+
+                // Limpiar el nombre si tiene paréntesis largos del paquete
+                if (nombre.contains("(") && nombre.contains(")")) {
+                    nombre = nombre.substring(0, nombre.indexOf("(")).trim();
+                }
+
+                int hoy = fila.length > 1 && fila[1] != null ? Integer.parseInt(fila[1].toString()) : 0;
+                int totalHist = fila.length > 2 && fila[2] != null ? Integer.parseInt(fila[2].toString()) : 0;
+                double recaudado = fila.length > 3 && fila[3] != null ? Double.parseDouble(fila[3].toString()) : 0.0;
+
+                Object[] filaVisual = {
+                    nombre,
+                    hoy + " pzs",
+                    totalHist + " pzs",
+                    String.format("$%.2f", recaudado)
+                };
+                modelo.addRow(filaVisual);
+            }
+        }
+
+        // 3. Estilos visuales y centrado de números
+        tblDemanda.setRowHeight(30);
+        tblDemanda.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        tblDemanda.getTableHeader().setForeground(new java.awt.Color(122, 15, 42));
+
+        if (tblDemanda.getColumnModel().getColumnCount() >= 4) {
+            javax.swing.table.DefaultTableCellRenderer centerRenderer = new javax.swing.table.DefaultTableCellRenderer();
+            centerRenderer.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+            tblDemanda.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+            tblDemanda.getColumnModel().getColumn(2).setCellRenderer(centerRenderer);
+            tblDemanda.getColumnModel().getColumn(3).setCellRenderer(centerRenderer);
+        }
     }
-}
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -65,9 +107,17 @@ private void cargarDemandaAcumulada() {
 
             },
             new String [] {
-                "Producto", "Unidades Pedidas"
+                "Producto", "Vendidos Hoy", "Total Histórico", "Recaudado ($)"
             }
-        ));
+        ) {
+            boolean[] canEdit = new boolean [] {
+                false, false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit [columnIndex];
+            }
+        });
         jScrollPane1.setViewportView(tblDemanda);
 
         btnActualizar.setBackground(new java.awt.Color(122, 15, 42));
